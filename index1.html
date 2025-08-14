@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TC,JOD HACK </title>
+<style>
+:root{
+  --bg1:#06101a; --bg2:#041018;
+  --text:#eafaf5; --muted:#9bd8c8;
+  --accentA:#00ffd5; --accentB:#00c687; --gold:#ffd76a;
+  --red1:#ff7b86; --red2:#ff4656;
+  --green1:#c0ffd9; --green2:#35e1a0;
+  --vio1:#f0ccff; --vio2:#b579ff;
+  --glass: rgba(255,255,255,0.02);
+  --radius:14px; --shadow: 0 18px 60px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  background: linear-gradient(180deg,var(--bg1),var(--bg2));
+  color:var(--text); -webkit-font-smoothing:antialiased;
+  padding:20px; display:flex; justify-content:center;
+}
+.app{ width:100%; max-width:1000px }
+
+/* header */
+.header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px }
+.logo{ width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#ffe89c,#ffd55a); color:#231a00; display:grid; place-items:center; font-weight:900; font-size:20px; box-shadow:0 12px 34px rgba(0,0,0,.45) }
+.title{ font-size:28px; font-weight:900 }
+.subtitle{ color:var(--muted); font-size:13px }
+
+/* controls (modes above scoreboard) */
+.controls{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px }
+.modes{ display:flex; gap:10px; align-items:center }
+.mode-btn{ padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.06); background:transparent; cursor:pointer; font-weight:800; color:var(--text) }
+.mode-btn.active{ background:linear-gradient(90deg,var(--gold),#fff0b0); color:#2b1500; box-shadow:0 8px 24px rgba(255,200,80,.06) }
+.register{ padding:10px 14px; border-radius:10px; background:linear-gradient(90deg,var(--accentA),var(--accentB)); color:#042; font-weight:900; border:none; cursor:pointer }
+
+/* scoreboard */
+.scoreboard{
+  border-radius:12px; padding:12px; display:flex; justify-content:space-between; align-items:center;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.03); box-shadow:var(--shadow); margin-bottom:14px;
+  transition: box-shadow .25s, transform .12s;
+}
+.score-left{ font-weight:900; font-size:15px }
+.score-right{ font-family:ui-monospace,Menlo,monospace; color:var(--muted) }
+
+/* card and grid */
+.card{ background:var(--glass); border-radius:12px; padding:14px; border:1px solid rgba(255,255,255,0.03); box-shadow:0 12px 40px rgba(0,0,0,.45); margin-bottom:12px }
+.ball-grid{ display:grid; grid-template-columns: repeat(5,1fr); gap:12px; max-width:720px; margin:0 auto }
+.ball{ height:74px; border-radius:99px; display:grid; place-items:center; font-weight:900; font-size:26px; color:#fff; user-select:none; transition: transform .12s, box-shadow .18s; }
+.ball.red{ background: radial-gradient(circle at 30% 30%, var(--red1), var(--red2)); color:#fff }
+.ball.green{ background: radial-gradient(circle at 30% 30%, var(--green1), var(--green2)); color:#022a1f }
+.ball.violet{ background: radial-gradient(circle at 30% 30%, var(--vio1), var(--vio2)); color:#2b004b }
+.ball.selected{ transform: scale(1.06) }
+
+/* glow classes for scoreboard */
+.glow-red{ box-shadow: 0 0 36px rgba(255,70,86,.6) }
+.glow-green{ box-shadow: 0 0 36px rgba(53,225,160,.6) }
+.glow-violet{ box-shadow: 0 0 36px rgba(181,121,255,.6) }
+
+/* BIGG / SMALL */
+.bs-row{ display:flex; gap:12px; margin-top:12px; }
+.bs-chip{ flex:1; padding:14px; border-radius:12px; text-align:center; font-weight:900; font-size:16px }
+.bs-chip.big{ background:linear-gradient(180deg,#ffd3d3,#ff8c8c); color:#3b0000; box-shadow: 0 10px 32px rgba(255,120,120,0.06) }
+.bs-chip.small{ background:linear-gradient(180deg,#d5fff0,#7df8cf); color:#002b1f; box-shadow:0 10px 32px rgba(80,230,170,0.04) }
+.dim{ opacity:.28; filter:grayscale(.2) }
+
+/* prediction */
+.pred-display{ margin-top:12px; padding:18px; border-radius:12px; text-align:center; font-weight:900; font-size:32px; background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) }
+.conf-bar{ margin-top:10px; height:12px; background:rgba(255,255,255,0.03); border-radius:999px; overflow:hidden }
+.conf-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accentA),var(--accentB)); transition:width 600ms cubic-bezier(.25,.8,.25,1) }
+.explain{ color:var(--muted); margin-top:8px; font-size:13px; text-align:center }
+
+/* history */
+.history-card{ margin-top:12px; padding:12px; border-radius:12px; background:var(--glass); border:1px solid rgba(255,255,255,0.03) }
+.history-list{ display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto; margin-top:8px }
+.history-row{ display:grid; grid-template-columns: 1.5fr .6fr .6fr .6fr; gap:8px; align-items:center; padding:8px; border-radius:10px; background: rgba(255,255,255,0.012) }
+
+/* modal */
+.modal-backdrop{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.6); z-index:9999 }
+.modal{ width:92%; max-width:520px; border-radius:14px; padding:18px; background: linear-gradient(180deg,#091219,#061018); border:1px solid rgba(255,255,255,0.03) }
+.modal h2{ margin:0 0 10px 0; font-size:20px }
+.modal p{ margin:6px 0; color:var(--muted) }
+.modal .actions{ display:flex; gap:12px; margin-top:12px }
+.modal .actions button{ flex:1; padding:12px; border-radius:12px; border:none; font-weight:900; cursor:pointer }
+.win-btn{ background:linear-gradient(90deg,var(--accentA),var(--accentB)); color:#042 }
+.loss-btn{ background:linear-gradient(90deg,#ff8070,#ff4050); color:#210000 }
+
+@media(max-width:760px){
+  .ball{ height:58px; font-size:20px }
+  .pred-display{ font-size:22px }
+}
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="logo">JOD</div>
+        <div>
+          <div class="title"> WINGO </div>
+          <div class="subtitle">AI powered• WINGO • HACK </div>
+        </div>
+      </div>
+      <div style="color:var(--muted);font-size:13px">REGISTER TO ACTIVATE PREMIUM__100% WIN </div>
+    </div>
+
+    <!-- modes above scoreboard -->
+    <div class="controls">
+      <div class="modes">
+        <button id="btn30" class="mode-btn active">WINGO 30S</button>
+        <button id="btn60" class="mode-btn">WINGO 1 MIN</button>
+      </div>
+      <div>
+        <button id="registerBtn" class="register">Register</button>
+      </div>
+    </div>
+
+    <!-- scoreboard -->
+    <div id="scoreboard" class="scoreboard">
+      <div class="score-left">PERIOD :- <strong id="period">20250814000001</strong></div>
+      <div class="score-right">⏳ <span id="timer">00:30</span></div>
+    </div>
+
+    <!-- number balls -->
+    <div class="card">
+      <div style="font-weight:900;text-align:center;margin-bottom:12px">SERVER CONNECTED</div>
+      <div id="ballGrid" class="ball-grid" aria-hidden="false"></div>
+    </div>
+
+    <!-- BIGG/SMALL -->
+    <div class="card">
+      <div style="font-weight:900">BET </div>
+      <div class="bs-row" style="margin-top:12px">
+        <div id="chipBig" class="bs-chip big">BIGG</div>
+        <div id="chipSmall" class="bs-chip small">SMALL</div>
+      </div>
+    </div>
+
+    <!-- prediction -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:900">Prediction</div>
+        <div style="color:var(--muted);font-size:13px">100% REAL WINN</div>
+      </div>
+      <div id="predBox" class="pred-display">—</div>
+      <div class="conf-bar"><div id="confFill" class="conf-fill"></div></div>
+      <div id="explain" class="explain">Learns from your Win/Loss feedback per mode.</div>
+    </div>
+
+    <!-- history -->
+    <div class="history-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:900">Prediction History</div>
+        <div style="color:var(--muted);font-size:13px">RECORD  • FROM SERVER</div>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- modal -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h2>🎯 <strong>Confirm Result</strong></h2>
+      <p id="modalText">Period • Prediction</p>
+      <div class="actions">
+        <button id="btnWin" class="win-btn">✅ WIN</button>
+        <button id="btnLoss" class="loss-btn">❌ LOSS</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================================================
+   WINGO Predictor — Final working script
+   - Modes: 30s / 1m (modes above Period+Timer)
+   - Period auto-increments (YYYYMMDD + 6-digit count)
+   - Number balls (0-9) shown and highlighted
+   - Prediction adaptive via user Win/Loss feedback saved per-mode
+   - Modal asks for Win/Loss at each round end BEFORE next prediction
+   - Max 20 history entries
+   - Sounds: tick, reveal, win, loss
+   ========================================================= */
+
+/* ---------- storage and initial state ---------- */
+const STORAGE_KEY = 'wingo_final_adaptive_v1';
+let stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+if(!stored.mode) stored.mode = 30; // 30s default
+if(!stored.models) stored.models = { '30': {counts: {}, wins:0, losses:0}, '60': {counts:{}, wins:0, losses:0} };
+if(!stored.history) stored.history = []; // newest first
+if(!('lastPrediction' in stored)) stored.lastPrediction = null; // pending prediction awaiting feedback
+localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(stored)); }
+
+/* ---------- DOM refs ---------- */
+const btn30 = document.getElementById('btn30');
+const btn60 = document.getElementById('btn60');
+const registerBtn = document.getElementById('registerBtn');
+const scoreboard = document.getElementById('scoreboard');
+const periodEl = document.getElementById('period');
+const timerEl = document.getElementById('timer');
+const ballGrid = document.getElementById('ballGrid');
+const chipBig = document.getElementById('chipBig');
+const chipSmall = document.getElementById('chipSmall');
+const predBox = document.getElementById('predBox');
+const confFill = document.getElementById('confFill');
+const explain = document.getElementById('explain');
+const historyList = document.getElementById('historyList');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalText = document.getElementById('modalText');
+const btnWin = document.getElementById('btnWin');
+const btnLoss = document.getElementById('btnLoss');
+
+/* ---------- audio helpers ---------- */
+let audioCtx = null;
+function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playTone(freq=880, dur=0.06, type='sine', vol=0.06){
+  try{
+    initAudio();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq; g.gain.value = vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  }catch(e){}
+}
+function tickSound(){ playTone(1200,0.04,'triangle',0.04); }
+function revealSound(){ playTone(900,0.06,'sine',0.06); }
+function winSound(){ playTone(880,0.08,'sine',0.08); setTimeout(()=>playTone(1320,0.06,'sine',0.06),90); }
+function lossSound(){ playTone(240,0.18,'sawtooth',0.10); }
+
+/* ---------- time helpers & period formatting ---------- */
+function pad(n,w=2){ return String(n).padStart(w,'0'); }
+function yyyymmdd(d){ return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`; }
+function midnight(d=new Date()){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function intervalMs(){ return stored.mode * 1000; }
+function periodIndex(now=new Date()){
+  const start = midnight(now).getTime();
+  return Math.floor((now.getTime() - start) / intervalMs());
+}
+function nextBoundaryDelay(){
+  const now = Date.now();
+  const start = midnight().getTime();
+  const mod = (now - start) % intervalMs();
+  return intervalMs() - mod;
+}
+function buildPeriod(now=new Date()){
+  const idx = periodIndex(now) + 1; // 1-based
+  return `${yyyymmdd(now)}${pad(idx,6)}`; // YYYYMMDD + 6-digit index
+}
+
+/* ---------- UI: build balls ---------- */
+function buildBalls(){
+  ballGrid.innerHTML = '';
+  for(let n=0;n<=9;n++){
+    const el = document.createElement('div');
+    el.className = 'ball ' + ((n===0||n===5)?'violet':([1,3,7,9].includes(n)?'green':'red'));
+    el.textContent = n;
+    el.dataset.n = n;
+    ballGrid.appendChild(el);
+  }
+}
+
+/* ---------- highlight helpers ---------- */
+function highlightNumber(n){
+  document.querySelectorAll('.ball').forEach(b=>{
+    b.classList.toggle('selected', Number(b.dataset.n) === n);
+  });
+}
+function setChips(bs){
+  chipBig.classList.toggle('dim', bs !== 'BIGG');
+  chipSmall.classList.toggle('dim', bs !== 'SMALL');
+}
+
+/* ---------- training helpers ---------- */
+function ensureModel(mode){
+  if(!stored.models[String(mode)]) stored.models[String(mode)] = { counts:{}, wins:0, losses:0 };
+}
+function updateTraining(mode, digit, result){
+  ensureModel(mode);
+  const m = stored.models[String(mode)];
+  if(!m.counts[digit]) m.counts[digit] = { wins:0, tries:0 };
+  m.counts[digit].tries++;
+  if(result === 'WIN') m.counts[digit].wins++;
+  if(result === 'WIN') m.wins++; else m.losses++;
+  save();
+}
+function digitScore(mode, d){
+  ensureModel(mode);
+  const rec = stored.models[String(mode)].counts[d];
+  if(!rec || rec.tries === 0) return 0.5;
+  return rec.wins / rec.tries;
+}
+
+/* ---------- predictor logic (adaptive) ---------- */
+function recentStats(k=30){
+  const slice = stored.history.slice(0,k);
+  const counts = { digits: Array(10).fill(0), big:0, small:0 };
+  slice.forEach(it=>{
+    counts.digits[it.num] = (counts.digits[it.num]||0) + 1;
+    if(it.bs === 'BIGG') counts.big++; else counts.small++;
+  });
+  return counts;
+}
+function streakBias(){
+  const last = stored.history.slice(0,3).map(h=>h.bs);
+  if(last.length < 3) return null;
+  if(last.every(x=>x==='BIGG')) return 'SMALL';
+  if(last.every(x=>x==='SMALL')) return 'BIGG';
+  return null;
+}
+function adaptiveBS(){
+  let bs = Math.random() > 0.5 ? 'BIGG' : 'SMALL';
+  const bias = streakBias(); if(bias) bs = bias;
+  const counts = recentStats(20);
+  const pBig = (counts.big + 1) / (counts.big + counts.small + 2);
+  if(pBig > 0.68) bs = 'SMALL';
+  else if(pBig < 0.32) bs = 'BIGG';
+  const model = stored.models[String(stored.mode)];
+  if(model && (model.wins + model.losses) >= 8){
+    const acc = model.wins / (model.wins + model.losses);
+    if(acc < 0.45) bs = (bs === 'BIGG' ? 'SMALL' : 'BIGG');
+  }
+  return bs;
+}
+function pickNumber(bs){
+  const pool = bs === 'BIGG' ? [5,6,7,8,9] : [0,1,2,3,4];
+  const counts = recentStats(40).digits;
+  const weights = pool.map(n=>{
+    const recent = counts[n] || 0;
+    const train = digitScore(String(stored.mode), n);
+    const base = 1 / (1 + recent);
+    const trainFactor = 1 + (train - 0.5) * 1.2;
+    return Math.max(0.01, base * trainFactor);
+  });
+  const sum = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random() * sum;
+  for(let i=0;i<pool.length;i++){
+    r -= weights[i];
+    if(r <= 0) return pool[i];
+  }
+  return pool[0];
+}
+function colorOf(n){
+  if(n === 0 || n === 5) return 'Violet';
+  if([1,3,7,9].includes(n)) return 'Green';
+  return 'Red';
+}
+function predictNow(now=new Date()){
+  const bs = adaptiveBS();
+  const num = pickNumber(bs);
+  const color = colorOf(num);
+  const trainScore = digitScore(String(stored.mode), num);
+  const recent = recentStats(30).digits[num] || 0;
+  const conf = Math.min(0.98, 0.56 + (trainScore - 0.5) * 0.6 + Math.max(0, 0.08 - recent*0.02) + Math.random()*0.08);
+  return { period: buildPeriod(now), num, bs, color, conf };
+}
+
+/* ---------- display & history ---------- */
+function showPrediction(pred){
+  highlightNumber(pred.num);
+  setChips(pred.bs);
+  predBox.textContent = `${pred.num} • ${pred.bs}`;
+  confFill.style.width = Math.round(pred.conf*100) + '%';
+  explain.textContent = `Confidence ${Math.round(pred.conf*100)}% • ${pred.color}`;
+  // scoreboard glow
+  scoreboard.classList.remove('glow-red','glow-green','glow-violet');
+  if(pred.color === 'Green') scoreboard.classList.add('glow-green');
+  else if(pred.color === 'Red') scoreboard.classList.add('glow-red');
+  else scoreboard.classList.add('glow-violet');
+  revealSound();
+}
+function renderHistory(){
+  historyList.innerHTML = '';
+  const max = 20;
+  stored.history.slice(0,max).forEach(h=>{
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    const colorStyle = h.color === 'Green' ? `background:linear-gradient(180deg,var(--green1),var(--green2)); color:#002a1b` :
+                       (h.color === 'Red' ? `background:linear-gradient(180deg,var(--red1),var(--red2)); color:#330000` :
+                        `background:linear-gradient(180deg,var(--vio1),var(--vio2)); color:#2b004b`);
+    const dot = `<div style="${colorStyle}; width:36px;height:36px;border-radius:999px;display:grid;place-items:center;font-weight:900">${h.num}</div>`;
+    row.innerHTML = `<div style="font-weight:800">${h.period}</div><div>${dot}</div><div style="font-weight:800">${h.bs}</div><div>${h.status||''}</div>`;
+    historyList.appendChild(row);
+  });
+}
+
+/* ---------- modal ---------- */
+function openModal(pred){
+  modalText.innerHTML = `<strong>Period:------</strong> ${pred.period} <br><strong>Prediction:--</strong> <span style="font-weight:900">${pred.num} • ${pred.bs}</span> (${pred.color})`;
+  modalBackdrop.style.display = 'flex';
+}
+function closeModal(){ modalBackdrop.style.display = 'none'; }
+
+/* ---------- scheduler ---------- */
+let uiInterval = null;
+let boundaryTO = null;
+function startScheduler(){
+  if(uiInterval) clearInterval(uiInterval);
+  if(boundaryTO) clearTimeout(boundaryTO);
+
+  // UI ticker
+  uiInterval = setInterval(()=>{
+    const delay = nextBoundaryDelay();
+    const secs = Math.ceil(delay/1000);
+    const mm = Math.floor(secs/60);
+    const ss = secs % 60;
+    timerEl.textContent = `${pad(mm)}:${pad(ss)}`;
+    periodEl.textContent = buildPeriod(new Date());
+    if(secs <= 5){
+      scoreboard.animate([{ transform:'scale(1)' }, { transform:'scale(1.02)' }, { transform:'scale(1)' }], { duration:700, iterations:1 });
+      if(secs <= 3) tickSound();
+    }
+  }, 300);
+
+  const delayMs = nextBoundaryDelay();
+  boundaryTO = setTimeout(async ()=>{
+    // boundary reached
+    // If there's a pending lastPrediction awaiting feedback, open modal
+    if(stored.lastPrediction){
+      openModal(stored.lastPrediction);
+      return;
+    }
+    // Else make a prediction immediately and show it
+    const p = predictNow(new Date());
+    stored.lastPrediction = p;
+    save();
+    showPrediction(p);
+    // schedule next
+    startScheduler();
+  }, delayMs);
+}
+
+/* ---------- modal handlers ---------- */
+btnWin.addEventListener('click', ()=>{
+  if(!stored.lastPrediction){ closeModal(); return; }
+  updateTraining(stored.mode, stored.lastPrediction.num, 'WIN');
+  stored.history.unshift({...stored.lastPrediction, status:'WIN'});
+  if(stored.history.length > 20) stored.history.length = 20;
+  stored.lastPrediction = null;
+  save();
+  renderHistory();
+  closeModal();
+  winSound();
+  // create next prediction right away (so user sees it)
+  const next = predictNow(new Date());
+  stored.lastPrediction = next;
+  save();
+  showPrediction(next);
+  startScheduler();
+});
+btnLoss.addEventListener('click', ()=>{
+  if(!stored.lastPrediction){ closeModal(); return; }
+  updateTraining(stored.mode, stored.lastPrediction.num, 'LOSS');
+  stored.history.unshift({...stored.lastPrediction, status:'LOSS'});
+  if(stored.history.length > 20) stored.history.length = 20;
+  stored.lastPrediction = null;
+  save();
+  renderHistory();
+  closeModal();
+  lossSound();
+  const next = predictNow(new Date());
+  stored.lastPrediction = next;
+  save();
+  showPrediction(next);
+  startScheduler();
+});
+
+/* ---------- mode switches ---------- */
+btn30.addEventListener('click', ()=>{
+  stored.mode = 30; save(); btn30.classList.add('active'); btn60.classList.remove('active'); startScheduler();
+});
+btn60.addEventListener('click', ()=>{
+  stored.mode = 60; save(); btn60.classList.add('active'); btn30.classList.remove('active'); startScheduler();
+});
+registerBtn.addEventListener('click', ()=> window.open('https://example.com/register','_blank') );
+
+/* ---------- init ---------- */
+buildBalls();
+renderHistory();
+// show saved pending prediction if exists
+if(stored.lastPrediction){
+  showPrediction(stored.lastPrediction);
+} else {
+  // generate an initial prediction so UI isn't empty
+  const p = predictNow(new Date());
+  stored.lastPrediction = p;
+  save();
+  showPrediction(p);
+}
+startScheduler();
+
+/* expose for debugging */
+window.__wingo = { stored, predictNow, startScheduler, buildBalls };
+
+</script>
+</body>
+</html>
